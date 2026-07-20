@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEYLEX - Live Tracking</title>
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        :root {
+            --primary: #1B4D3E;
+            --secondary: #C5A059;
+            --bg: #f8f9fa;
+        }
+        @keyframes bounceCute {
+            0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+            25% { transform: translateY(-4px) scale(1.05) rotate(-3deg); }
+            75% { transform: translateY(-2px) scale(1.02) rotate(3deg); }
+        }
+        .logo-img {
+            height: 40px; width: 40px;
+            border-radius: 50%; object-fit: cover;
+            animation: bounceCute 3s infinite ease-in-out;
+            margin-right: 0.5rem;
+        }
+        body {
+            margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg); display: flex; flex-direction: column; height: 100vh;
+        }
+        header {
+            background: var(--primary); padding: 1rem 2rem; color: #fff;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+        .logo i { color: var(--secondary); }
+        .tracking-info {
+            background: #fff; padding: 1.5rem 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center; z-index: 100;
+        }
+        .eta-block h2 { margin: 0 0 0.5rem 0; font-size: 2rem; color: var(--primary); }
+        .eta-block p { margin: 0; color: #6c757d; font-weight: 600; }
+        .progress-bar-bg {
+            flex-grow: 1; max-width: 400px; height: 12px;
+            background: #e9ecef; border-radius: 6px; margin: 0 2rem; overflow: hidden;
+        }
+        .progress-bar-fill {
+            width: 0%; height: 100%; background: var(--secondary);
+            transition: width 1s linear;
+        }
+        #map { flex-grow: 1; width: 100%; z-index: 10; }
+        .driver-icon {
+            background: #1B4D3E; border: 2.5px solid #C5A059; width: 32px; height: 32px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 1.1rem; box-shadow: 0 0 15px rgba(27,77,62,0.6);
+        }
+        .house-icon {
+            font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo"><img src="/static/img/logo_final.jpg" class="logo-img" alt="Logo"> CEYLEX</div>
+        <div style="font-weight: 600;">Order #ORD-{{ order.id }}</div>
+    </header>
+
+    <div class="tracking-info">
+        <div class="eta-block">
+            <h2 id="eta-timer">12 mins</h2>
+            <p>Estimated Arrival</p>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-weight: 700; color: var(--primary); margin-bottom: 0.25rem;">{{ order.address_line1 }}, {{ order.address_line2 }}</div>
+            <div style="color: #6c757d; font-size: 0.85rem;"><i class="fa-solid fa-truck"></i> Driver is on the way</div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const cityCoordinatesMap = {
+            "Anuradhapura": [8.3122, 80.4131],
+            "Colombo": [6.9271, 79.8612],
+            "Kandy": [7.2906, 80.6337],
+            "Galle": [6.0535, 80.2117],
+            "Jaffna": [9.6615, 80.0095],
+            "Kurunegala": [7.4863, 80.3647],
+            "Ratnapura": [6.6828, 80.3992],
+            "Batticaloa": [7.7172, 81.7010],
+            "Badulla": [6.9934, 81.0550],
+            "Matara": [5.9549, 80.5550]
+        };
+
+        const deliveryCity = "{{ order.address_line2 }}";
+        const endCoords = cityCoordinatesMap[deliveryCity] || [6.9271, 79.8612];
+        
+        // Mock driver start coordinates slightly away from destination
+        const startCoords = [endCoords[0] - 0.05, endCoords[1] - 0.05];
+
+        const map = L.map('map').setView(startCoords, 12);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // Target House
+        const houseIcon = L.divIcon({
+            className: 'house-icon',
+            html: '🏠',
+            iconSize: [32, 32], iconAnchor: [16, 32]
+        });
+        L.marker(endCoords, {icon: houseIcon}).addTo(map);
+
+        // Driver Truck
+        const driverIcon = L.divIcon({
+            className: 'driver-icon',
+            html: '🚚',
+            iconSize: [32, 32], iconAnchor: [16, 16]
+        });
+        const driverMarker = L.marker(startCoords, {icon: driverIcon}).addTo(map);
+
+        // Simulated Tracking Logic
+        const routeLine = L.polyline([startCoords, endCoords], {
+            color: '#C5A059', weight: 4, dashArray: '5, 10'
+        }).addTo(map);
+        
+        map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+        let totalSeconds = 12 * 60; // 12 mins
+        let currentSeconds = totalSeconds;
+        let progress = 0;
+        
+        const timerEl = document.getElementById("eta-timer");
+        const progressEl = document.getElementById("progress-fill");
+
+        const interval = setInterval(() => {
+            currentSeconds -= 20; // speed up simulation (20 secs per tick)
+            progress += 2.77; // roughly 36 ticks to 100%
+
+            if(currentSeconds <= 0) {
+                clearInterval(interval);
+                timerEl.innerText = "Arrived!";
+                progressEl.style.width = "100%";
+                driverMarker.setLatLng(endCoords);
+                return;
+            }
+
+            const mins = Math.ceil(currentSeconds / 60);
+            timerEl.innerText = mins + " mins";
+            progressEl.style.width = Math.min(progress, 100) + "%";
+
+            const ratio = progress / 100;
+            const newLat = startCoords[0] + (endCoords[0] - startCoords[0]) * ratio;
+            const newLng = startCoords[1] + (endCoords[1] - startCoords[1]) * ratio;
+            driverMarker.setLatLng([newLat, newLng]);
+
+        }, 1000); // tick every second in real time
+    </script>
+</body>
+</html>
