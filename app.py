@@ -820,7 +820,7 @@ def api_drivers():
         lat = data.get('lat')
         lng = data.get('lng')
         area = data.get('area')
-        
+
         # Build update query dynamically
         updates = []
         params = []
@@ -828,6 +828,7 @@ def api_drivers():
         if status:
             updates.append("status = ?")
             params.append(status)
+    
         if lat is not None:
             updates.append("lat = ?")
             params.append(float(lat))
