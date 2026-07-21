@@ -223,9 +223,16 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    showToast(`Availability updated to ${newStatus}.`, "success");
-                    loadDriverProfile();
-                } else {
+        if (newStatus === "available") {
+            showToast("You are now available for new delivery jobs.", "success");
+        } else if (newStatus === "offline") {
+            showToast("You are now offline and will not receive new job notifications.", "info");
+        } else {
+            showToast(`Availability updated to ${newStatus}.`, "success");
+        }
+
+        loadDriverProfile();
+        } else {
                     showToast(result.message, "danger");
                 }
             } catch (err) {
