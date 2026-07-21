@@ -347,7 +347,17 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    showToast(`Delivery job successfully marked as ${status}!`, "success");
+                        if (status === "accepted") {
+        showToast("Delivery request accepted successfully.", "success");
+    } else if (status === "delivering") {
+        showToast("Delivery has started. Customer tracking is now active.", "success");
+    } else if (status === "delivered") {
+        showToast("Delivery completed. Vehicle status changed to Returning.", "success");
+    } else if (status === "declined") {
+        showToast("Delivery request declined.", "info");
+    } else {
+        showToast(`Order status updated to ${status}.`, "success");
+    }
                     loadDriverProfile();
                     loadDriverJobs();
                 } else {
